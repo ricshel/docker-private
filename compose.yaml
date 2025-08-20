@@ -5,7 +5,7 @@ services:
     container_name: tailscale-webui
     hostname: webui
     environment:
-      - TS_AUTHKEY=xxxx
+      - TS_AUTHKEY=${TS_AUTHKEY}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_USERSPACE=false
     volumes:
@@ -43,7 +43,7 @@ services:
     container_name: tailscale-nextcloud
     hostname: nextcloud
     environment:
-      - TS_AUTHKEY=xxxx
+      - TS_AUTHKEY=${TS_AUTHKEY}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_USERSPACE=false
     volumes:
@@ -82,9 +82,8 @@ services:
       - MYSQL_DATABASE=nextcloud
       - MYSQL_USER=nextcloud
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - MYSQL_HOST=127.0.0.1       # DB reachable only via loopback in same namespace
+      - MYSQL_HOST=127.0.0.1
       - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}
       - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
       - NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_TRUSTED_DOMAINS}
-      # Include the Tailscale hostname/IP you'll use (e.g. nextcloud.<tailnet>)
     network_mode: service:tailscale-nextcloud
