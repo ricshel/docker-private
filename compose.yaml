@@ -1,0 +1,90 @@
+services:
+  # ===== Tailscale for WebUI/Ollama =====
+  tailscale-webui:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-webui
+    hostname: webui
+    environment:
+      - TS_AUTHKEY=xxxx
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
+    volumes:
+      - ${PWD}/tailscale-state-webui:/var/lib/tailscale
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add: [ NET_ADMIN ]
+    restart: unless-stopped
+
+  webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: openwebui
+    restart: unless-stopped
+    network_mode: service:tailscale-webui
+    environment:
+      OLLAMA_BASE_URL: http://127.0.0.1:11434
+    depends_on: [ ollama ]
+
+  ollama:
+    build:
+      context: .
+      dockerfile: ollama
+    container_name: ollama
+    restart: unless-stopped
+    network_mode: service:tailscale-webui
+    volumes:
+      - "/home/guy/.ollama-store:/root/.ollama"
+    environment:
+      OLLAMA_HOST: 127.0.0.1
+      OLLAMA_PORT: 11434
+
+  # ===== Tailscale for Nextcloud/DB =====
+  tailscale-nextcloud:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-nextcloud
+    hostname: nextcloud
+    environment:
+      - TS_AUTHKEY=xxxx
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
+    volumes:
+      - ${PWD}/tailscale-state-nextcloud:/var/lib/tailscale
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add: [ NET_ADMIN ]
+    restart: unless-stopped
+
+  db:
+    image: mariadb:10.6
+    container_name: nextcloud-db
+    command: >
+      --transaction-isolation=READ-COMMITTED
+      --log-bin=binlog
+      --binlog-format=ROW
+      --bind-address=127.0.0.1
+    volumes:
+      - /mnt/secure_data/mysql:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    restart: unless-stopped
+    network_mode: service:tailscale-nextcloud
+
+  nextcloud:
+    image: nextcloud:31.0.4-apache
+    container_name: nextcloud
+    restart: unless-stopped
+    depends_on: [ db ]
+    volumes:
+      - /mnt/secure_data/nextcloud:/var/www/html
+    environment:
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_HOST=127.0.0.1       # DB reachable only via loopback in same namespace
+      - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}
+      - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
+      - NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_TRUSTED_DOMAINS}
+      # Include the Tailscale hostname/IP you'll use (e.g. nextcloud.<tailnet>)
+    network_mode: service:tailscale-nextcloud

@@ -1,0 +1,10 @@
+.env
+testreadme.md
+testtworeadme.md
+backup.sh
+restore.sh
+open-webui*
+old-compose.yml
+*.txt
+config.php
+tailscale-state*
