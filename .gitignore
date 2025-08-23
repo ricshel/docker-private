@@ -8,3 +8,4 @@ old-compose.yml
 *.txt
 config.php
 tailscale-state*
+.swp

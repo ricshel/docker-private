@@ -7,7 +7,7 @@ SOURCE_DIR="/media/veracrypt1/nextcloud_backup"
 TARGET_DIR="/mnt/secure_data"
 
 # Stop the Docker stack
-sudo docker-compose down
+sudo docker compose down
 echo "Docker stack stopped."
 
 echo "making sure the target directory exists..."
@@ -50,6 +50,6 @@ echo "Fixing permissions for Nextcloud user data..."
 echo "fixed permissions for Nextcloud data"
 
 # Start the Docker stack again
-sudo docker-compose up -d
+sudo docker compose up -d
 echo "Docker stack started."
 echo "Restore completed successfully."
