@@ -1,3 +1,5 @@
+name: docker-home
+
 services:
   # ===== Tailscale for WebUI/Ollama =====
   tailscale-webui:
@@ -9,7 +11,7 @@ services:
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_USERSPACE=false
     volumes:
-      - ${PWD}/tailscale-state-webui:/var/lib/tailscale
+      - ${CENTRAL_STORAGE_FOLDER}/tailscale_state_webui:/var/lib/tailscale
     devices:
       - /dev/net/tun:/dev/net/tun
     cap_add: [ NET_ADMIN ]
@@ -32,7 +34,7 @@ services:
     restart: unless-stopped
     network_mode: service:tailscale-webui
     volumes:
-      - "/home/guy/.ollama-store:/root/.ollama"
+      - ${CENTRAL_STORAGE_FOLDER}/ollama-store:/root/.ollama 
     environment:
       OLLAMA_HOST: 127.0.0.1
       OLLAMA_PORT: 11434
@@ -47,7 +49,7 @@ services:
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_USERSPACE=false
     volumes:
-      - ${PWD}/tailscale-state-nextcloud:/var/lib/tailscale
+      - ${CENTRAL_STORAGE_FOLDER}/tailscale_state_nextcloud:/var/lib/tailscale
     devices:
       - /dev/net/tun:/dev/net/tun
     cap_add: [ NET_ADMIN ]
@@ -62,7 +64,7 @@ services:
       --binlog-format=ROW
       --bind-address=127.0.0.1
     volumes:
-      - /mnt/secure_data/mysql:/var/lib/mysql
+      - ${SECURE_DATA_PATH}/mysql:/var/lib/mysql
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=nextcloud
@@ -77,7 +79,7 @@ services:
     restart: unless-stopped
     depends_on: [ db ]
     volumes:
-      - /mnt/secure_data/nextcloud:/var/www/html
+      - ${SECURE_DATA_PATH}/nextcloud:/var/www/html
     environment:
       - MYSQL_DATABASE=nextcloud
       - MYSQL_USER=nextcloud
