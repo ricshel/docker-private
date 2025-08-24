@@ -1,17 +1,16 @@
 name: docker-home
 
 services:
-  # ===== Tailscale for WebUI/Ollama =====
-  tailscale-webui:
+  tailscale:
     image: tailscale/tailscale:latest
-    container_name: tailscale-webui
-    hostname: webui
+    container_name: tailscale
+    hostname: docker
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_USERSPACE=false
     volumes:
-      - ${CENTRAL_STORAGE_FOLDER}/tailscale_state_webui:/var/lib/tailscale
+      - ${CENTRAL_STORAGE_FOLDER}/tailscale_state:/var/lib/tailscale
     devices:
       - /dev/net/tun:/dev/net/tun
     cap_add: [ NET_ADMIN ]
@@ -19,9 +18,9 @@ services:
 
   webui:
     image: ghcr.io/open-webui/open-webui:main
-    container_name: openwebui
+    container_name: webui
     restart: unless-stopped
-    network_mode: service:tailscale-webui
+    network_mode: service:tailscale
     environment:
       OLLAMA_BASE_URL: http://127.0.0.1:11434
     depends_on: [ ollama ]
@@ -32,28 +31,12 @@ services:
       dockerfile: ollama
     container_name: ollama
     restart: unless-stopped
-    network_mode: service:tailscale-webui
+    network_mode: service:tailscale
     volumes:
       - ${CENTRAL_STORAGE_FOLDER}/ollama-store:/root/.ollama 
     environment:
       OLLAMA_HOST: 127.0.0.1
       OLLAMA_PORT: 11434
-
-  # ===== Tailscale for Nextcloud/DB =====
-  tailscale-nextcloud:
-    image: tailscale/tailscale:latest
-    container_name: tailscale-nextcloud
-    hostname: nextcloud
-    environment:
-      - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_USERSPACE=false
-    volumes:
-      - ${CENTRAL_STORAGE_FOLDER}/tailscale_state_nextcloud:/var/lib/tailscale
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    cap_add: [ NET_ADMIN ]
-    restart: unless-stopped
 
   db:
     image: mariadb:10.6
@@ -71,7 +54,7 @@ services:
       - MYSQL_USER=nextcloud
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     restart: unless-stopped
-    network_mode: service:tailscale-nextcloud
+    network_mode: service:tailscale
 
   nextcloud:
     image: nextcloud:31.0.4-apache
@@ -88,4 +71,4 @@ services:
       - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}
       - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
       - NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_TRUSTED_DOMAINS}
-    network_mode: service:tailscale-nextcloud
+    network_mode: service:tailscale
