@@ -1,17 +1,16 @@
 name: docker-home
 
 services:
+
   tailscale:
     image: tailscale/tailscale:latest
     container_name: tailscale
     hostname: docker
     healthcheck:
-      test: ["CMD", "tailscale", "status"]
-      interval: 1m30s
-      timeout: 10s
+      test: ["CMD", "test", "-f", "/central_storage/tailscale_docker_dns.txt"]
+      interval: 15s
+      timeout: 5s
       retries: 5
-      start_period: 60s
-      start_interval: 5s
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY}
       - TS_STATE_DIR=/var/lib/tailscale
@@ -21,21 +20,22 @@ services:
       - ${CENTRAL_STORAGE_FOLDER}:/central_storage
     devices:
       - /dev/net/tun:/dev/net/tun
-    cap_add: [ NET_ADMIN ]
+    cap_add: [NET_ADMIN]
     restart: unless-stopped
     command: >
       sh -c "
-        # Start tailscaled in the background
-        tailscaled & 
-        # Wait for tailscale to start
+        rm /central_storage/tailscale_docker_dns.txt
+        apk add --no-cache jq
+        tailscaled &
         sleep 10
-        # Fetch the DNS name from Tailscale
-        TAILSCALE_DNS=$(tailscale status --json | awk -F'\"DNSName\":' '{print $2}' | awk -F '\"' '{print $2}' | grep \"docker\")
-        # Write the DNS name to a file in the central storage folder
-        echo $$TAILSCALE_DNS > /central_storage/tailscale_docker_dns.txt
-        # Keep container running
+        tailscale status --json
+        TAILSCALE_DNS=$$(tailscale status --json | jq -r '.Self.DNSName')
+        TAILSCALE_DNS=$${TAILSCALE_DNS%.}
+        echo "$${TAILSCALE_DNS}"
+        echo "$${TAILSCALE_DNS}" > /central_storage/tailscale_docker_dns.txt
+        echo 'DNS Name written to /central_storage/tailscale_docker_dns.txt'
         tail -f /dev/null
-      "
+        "
 
   webui:
     image: ghcr.io/open-webui/open-webui:main
@@ -82,13 +82,12 @@ services:
     container_name: nextcloud
     restart: unless-stopped
     depends_on:
-      db:
-        condition: service_started
       tailscale:
         condition: service_healthy
     volumes:
       - ${SECURE_DATA_PATH}/nextcloud:/var/www/html
       - ${CENTRAL_STORAGE_FOLDER}:/central_storage
+      - ./update_config.sh:/update_config.sh
     environment:
       - MYSQL_DATABASE=nextcloud
       - MYSQL_USER=nextcloud
@@ -96,5 +95,5 @@ services:
       - MYSQL_HOST=127.0.0.1
       - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}
       - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
-      - NEXTCLOUD_TRUSTED_DOMAINS=$(cat /central_storage/tailscale_docker_dns.txt)
+    entrypoint: ["/bin/bash", "/update_config.sh"]  # Use the update script as entrypoint
     network_mode: service:tailscale
