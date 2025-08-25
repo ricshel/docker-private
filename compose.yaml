@@ -5,16 +5,37 @@ services:
     image: tailscale/tailscale:latest
     container_name: tailscale
     hostname: docker
+    healthcheck:
+      test: ["CMD", "tailscale", "status"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+      start_interval: 5s
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_USERSPACE=false
     volumes:
       - ${CENTRAL_STORAGE_FOLDER}/tailscale_state:/var/lib/tailscale
+      - ${CENTRAL_STORAGE_FOLDER}:/central_storage
     devices:
       - /dev/net/tun:/dev/net/tun
     cap_add: [ NET_ADMIN ]
     restart: unless-stopped
+    command: >
+      sh -c "
+        # Start tailscaled in the background
+        tailscaled & 
+        # Wait for tailscale to start
+        sleep 10
+        # Fetch the DNS name from Tailscale
+        TAILSCALE_DNS=$(tailscale status --json | awk -F'\"DNSName\":' '{print $2}' | awk -F '\"' '{print $2}' | grep \"docker\")
+        # Write the DNS name to a file in the central storage folder
+        echo $$TAILSCALE_DNS > /central_storage/tailscale_docker_dns.txt
+        # Keep container running
+        tail -f /dev/null
+      "
 
   webui:
     image: ghcr.io/open-webui/open-webui:main
@@ -60,9 +81,14 @@ services:
     image: nextcloud:31.0.4-apache
     container_name: nextcloud
     restart: unless-stopped
-    depends_on: [ db ]
+    depends_on:
+      db:
+        condition: service_started
+      tailscale:
+        condition: service_healthy
     volumes:
       - ${SECURE_DATA_PATH}/nextcloud:/var/www/html
+      - ${CENTRAL_STORAGE_FOLDER}:/central_storage
     environment:
       - MYSQL_DATABASE=nextcloud
       - MYSQL_USER=nextcloud
@@ -70,5 +96,5 @@ services:
       - MYSQL_HOST=127.0.0.1
       - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}
       - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
-      - NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_TRUSTED_DOMAINS}
+      - NEXTCLOUD_TRUSTED_DOMAINS=$(cat /central_storage/tailscale_docker_dns.txt)
     network_mode: service:tailscale
