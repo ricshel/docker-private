@@ -14,7 +14,7 @@ RUN curl -fsSL https://ollama.com/install.sh | sh
 
 EXPOSE 11434
 
-COPY ollamaentry.sh /ollamaentry.sh
-RUN chmod +x /ollamaentry.sh
+COPY entry-ollama.sh /entry-ollama.sh
+RUN chmod +x /entry-ollama.sh
 
-ENTRYPOINT ["/ollamaentry.sh"] 
+ENTRYPOINT ["/entry-ollama.sh"] 

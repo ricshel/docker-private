@@ -87,7 +87,7 @@ services:
     volumes:
       - ${SECURE_DATA_PATH}/nextcloud:/var/www/html
       - ${CENTRAL_STORAGE_FOLDER}:/central_storage
-      - ./update_config.sh:/update_config.sh
+      - ./nextcloud_trusted_domains.sh:/nextcloud_trusted_domains.sh
     environment:
       - MYSQL_DATABASE=nextcloud
       - MYSQL_USER=nextcloud
@@ -95,5 +95,5 @@ services:
       - MYSQL_HOST=127.0.0.1
       - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}
       - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
-    entrypoint: ["/bin/bash", "/update_config.sh"]  # Use the update script as entrypoint
+    entrypoint: ["/bin/bash", "/nextcloud_trusted_domains.sh"]  # Use the update script as entrypoint
     network_mode: service:tailscale
