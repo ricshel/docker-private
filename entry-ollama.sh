@@ -1,22 +1,21 @@
 #!/bin/sh
 set -e
 
+# Load environment variables from the .env file
+if [ -f .env ]; then
+  export $(grep -v '^#' .env | xargs)
+fi
+
 echo ">>> Starting Ollama server..."
 ollama -v
 ollama serve &  
 sleep 2
 
-echo ">>> Pulling deepseek-r1 32b..."
-ollama pull deepseek-r1:32b
-
-echo ">>> Pulling dolphin llama3 8b..."
-ollama pull dolphin-llama3:8b
-
-echo ">>> Pulling nous hermes 13b..."
-ollama pull nous-hermes:13b
-
-echo ">>> Pulling ollama pull gpt oss 20b..."
-ollama pull gpt-oss:20b
+# Loop through each model in the MODELS list
+for model in $MODELS; do
+  echo ">>> Pulling $model..."
+  ollama pull $model
+done
 
 echo ">>> All setup done. Holding container..."
 tail -f /dev/null
