@@ -4,7 +4,7 @@ services:
 
   tailscale:
     image: tailscale/tailscale:latest
-    container_name: tailscale
+    container_name: docker-cont
     hostname: docker
     healthcheck:
       test: ["CMD", "test", "-f", "/central_storage/tailscale_docker_dns.txt"]
@@ -12,22 +12,23 @@ services:
       timeout: 5s
       retries: 5
     environment:
-      - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_STATE_DIR=/var/lib/tailscale
       - TS_USERSPACE=false
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=${CENTRAL_STORAGE_FOLDER}/tailscale_state
     volumes:
       - ${CENTRAL_STORAGE_FOLDER}/tailscale_state:/var/lib/tailscale
       - ${CENTRAL_STORAGE_FOLDER}:/central_storage
     devices:
       - /dev/net/tun:/dev/net/tun
+    privileged: true
     cap_add: [NET_ADMIN]
-    restart: unless-stopped
+    restart: on-failure
     command: >
       sh -c "
-        rm /central_storage/tailscale_docker_dns.txt
         apk add --no-cache jq
         tailscaled &
         sleep 10
+        tailscale up --auth-key $${TS_AUTHKEY} &
         tailscale status --json
         TAILSCALE_DNS=$$(tailscale status --json | jq -r '.Self.DNSName')
         TAILSCALE_DNS=$${TAILSCALE_DNS%.}
