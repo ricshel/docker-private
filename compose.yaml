@@ -98,3 +98,10 @@ services:
       - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
     entrypoint: ["/bin/bash", "/nextcloud_trusted_domains.sh"]  # Use the update script as entrypoint
     network_mode: service:tailscale
+  backup:
+    image: alpine:latest
+    container_name: backup
+    command: >
+      sh -c "
+        tail -f /dev/null
+        "
