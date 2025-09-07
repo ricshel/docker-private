@@ -4,7 +4,7 @@ services:
 
   tailscale:
     image: tailscale/tailscale:latest
-    container_name: docker-cont
+    container_name: docker
     hostname: docker
     healthcheck:
       test: ["CMD", "test", "-f", "/central_storage/tailscale_docker_dns.txt"]
