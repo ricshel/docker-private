@@ -28,7 +28,7 @@ services:
         apk add --no-cache jq
         tailscaled &
         sleep 10
-        tailscale up --auth-key $${TS_AUTHKEY} &
+        tailscale up --auth-key $${TS_AUTHKEY} --advertise-exit-node &
         tailscale status --json
         TAILSCALE_DNS=$$(tailscale status --json | jq -r '.Self.DNSName')
         TAILSCALE_DNS=$${TAILSCALE_DNS%.}
